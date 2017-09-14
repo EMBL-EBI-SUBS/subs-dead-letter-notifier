@@ -1,0 +1,15 @@
+spring:
+  main:
+    web-environment: false
+
+dlqEmailer:
+  rabbitMQProp:
+    baseURL: amqp://mac-subs-009
+    deadLetterExchangeName: usi-1:dead-letter-exchange
+    deadLetterEmailerQueueName: usi-dead-letter-emailer
+    deadLetterRoutingKey: #
+
+logging:
+  level: debug
+
+
