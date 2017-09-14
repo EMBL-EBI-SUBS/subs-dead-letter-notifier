@@ -1,0 +1,46 @@
+group 'uk.ac.ebi.subs'
+version '0.1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: 'org.springframework.boot'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url 'http://repo.spring.io/plugins-release' }
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.5.1.RELEASE")
+        classpath 'io.spring.gradle:propdeps-plugin:0.0.9.RELEASE'
+    }
+}
+
+configure(allprojects) {
+    apply plugin: 'propdeps'
+    apply plugin: 'propdeps-maven'
+    apply plugin: 'propdeps-idea'
+    apply plugin: 'propdeps-eclipse'
+}
+
+dependencies {
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-amqp'
+
+    optional "org.springframework.boot:spring-boot-configuration-processor"
+
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.16.12'
+
+    testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test'
+}
+
+compileJava.dependsOn(processResources)
+
+bootRepackage.enabled = false
