@@ -44,29 +44,31 @@ public class DeadLetterNotifier {
     }
 
     @Scheduled(fixedRate = 30 * 60 * 1000) // scheduled for every 30 minutes
-    public void sendNotification() throws IOException, MessagingException {
+    public int sendNotification() throws IOException, MessagingException {
         logger.info("send notification triggered.");
+        final int messagesSize;
 
         synchronized (messages) {
-            if (messages.size() <= 0) {
-                return;
+            messagesSize = messages.size();
+            if (messagesSize > 0) {
+                logger.info("Sending an email");
+
+                String emailBody = createEmailBody(messagesSize);
+
+                String messageAttachmentString = messages.entrySet()
+                        .stream()
+                        .map(message -> "routing key: " + message.getKey().toString() + ", message: " + message.getValue().toString() + "\n")
+                        .collect(Collectors.joining());
+
+                MimeMessage message = createMessage(emailBody, messageAttachmentString);
+
+                emailSender.send(message);
+
+                messages.clear();
             }
-
-            logger.info("Sending an email");
-
-            String emailBody = createEmailBody();
-
-            String messageAttachmentString = messages.entrySet()
-                    .stream()
-                    .map(message -> "routing key: " + message.getKey().toString() + ", message: " + message.getValue().toString() + "\n")
-                    .collect(Collectors.joining());
-
-            MimeMessage message = createMessage(emailBody, messageAttachmentString);
-
-            emailSender.send(message);
-
-            messages.clear();
         }
+
+        return messagesSize;
     }
 
     private MimeMessage createMessage(String emailBody, String messageAttachmentString) throws MessagingException {
@@ -85,9 +87,7 @@ public class DeadLetterNotifier {
         return message;
     }
 
-    private String createEmailBody() throws IOException {
-        long messageCount = messages.size();
-
+    private String createEmailBody(int messageCount) throws IOException {
         MustacheFactory mustacheFactory = new DefaultMustacheFactory();
         Mustache mustache = mustacheFactory.compile("dead_letter_notifier_email_template.mustache");
 
