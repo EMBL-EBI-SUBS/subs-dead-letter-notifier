@@ -13,15 +13,14 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.subs.dlqemailer.config.DLQEmailerProperties;
 import uk.ac.ebi.subs.dlqemailer.config.EmailMustacheProperties;
-import uk.ac.ebi.subs.dlqemailer.entity.MessageHolder;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -37,14 +36,11 @@ public class DeadLetterNotifier {
         this.emailSender = emailSender;
     }
 
-    private List<MessageHolder> messages = new ArrayList<>();
+    private Map<String, String> messages = new HashMap<>();
 
     @RabbitListener(queues = "usi-dead-letter-emailer")
     public void consumeDeadLetterEmailerQueue(Message message) {
-        MessageHolder messageHolder = new MessageHolder();
-        messageHolder.setMessage(new String(message.getBody()));
-        messageHolder.setRoutingKey(message.getMessageProperties().getReceivedRoutingKey());
-        messages.add(messageHolder);
+        messages.putIfAbsent(message.getMessageProperties().getReceivedRoutingKey(), new String(message.getBody()));
     }
 
     @Scheduled(fixedRate = 30 * 60 * 1000) // scheduled for every 30 minutes
@@ -60,7 +56,9 @@ public class DeadLetterNotifier {
 
             String emailBody = createEmailBody();
 
-            String messageAttachmentString = messages.stream().map(message -> message.toString())
+            String messageAttachmentString = messages.entrySet()
+                    .stream()
+                    .map(message -> "routing key: " + message.getKey().toString() + ", message: " + message.getValue().toString() + "\n")
                     .collect(Collectors.joining());
 
             MimeMessage message = createMessage(emailBody, messageAttachmentString);
