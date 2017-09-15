@@ -33,6 +33,9 @@ configure(allprojects) {
 dependencies {
     compile group: 'org.springframework.boot', name: 'spring-boot-starter'
     compile group: 'org.springframework.boot', name: 'spring-boot-starter-amqp'
+    compile 'com.github.spullara.mustache.java:compiler:0.9.5'
+    compile 'org.springframework.boot:spring-boot-starter-mail'
+
 
     optional "org.springframework.boot:spring-boot-configuration-processor"
 

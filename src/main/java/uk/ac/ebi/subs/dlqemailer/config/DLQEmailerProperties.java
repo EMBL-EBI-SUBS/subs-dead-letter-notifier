@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class DLQEmailerProperties {
 
     private RabbitMQProp rabbitMQProp;
+    private Email email;
 
     @ToString
     @Getter
@@ -28,5 +29,14 @@ public class DLQEmailerProperties {
         private String deadLetterExchangeName;
         private String deadLetterEmailerQueueName;
         private String deadLetterRoutingKey;
+    }
+
+    @ToString
+    @Getter
+    @Setter
+    public static class Email {
+        private String from;
+        private String to;
+        private String replyTo;
     }
 }
