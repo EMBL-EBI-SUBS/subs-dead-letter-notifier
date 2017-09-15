@@ -5,21 +5,24 @@ import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.subs.dlqemailer.config.DLQEmailerProperties;
 import uk.ac.ebi.subs.dlqemailer.config.EmailMustacheProperties;
+import uk.ac.ebi.subs.dlqemailer.entity.MessageHolder;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class DeadLetterNotifier {
@@ -34,21 +37,38 @@ public class DeadLetterNotifier {
         this.emailSender = emailSender;
     }
 
-    private LocalTime initialTime;
-    private List<String> messages = new ArrayList<>();
+    private List<MessageHolder> messages = new ArrayList<>();
 
+    @RabbitListener(queues = "usi-dead-letter-emailer")
+    public void consumeDeadLetterEmailerQueue(Message message) {
+        MessageHolder messageHolder = new MessageHolder();
+        messageHolder.setMessage(new String(message.getBody()));
+        messageHolder.setRoutingKey(message.getMessageProperties().getReceivedRoutingKey());
+        messages.add(messageHolder);
+    }
+
+    @Scheduled(fixedRate = 30 * 60 * 1000) // scheduled for every 30 minutes
     public void sendNotification() throws IOException, MessagingException {
-        if (messages.size() <= 0 ) {
-            return;
+        logger.info("send notification triggered.");
+
+        synchronized (messages) {
+            if (messages.size() <= 0) {
+                return;
+            }
+
+            logger.info("Sending an email");
+
+            String emailBody = createEmailBody();
+
+            String messageAttachmentString = messages.stream().map(message -> message.toString())
+                    .collect(Collectors.joining());
+
+            MimeMessage message = createMessage(emailBody, messageAttachmentString);
+
+            emailSender.send(message);
+
+            messages.clear();
         }
-
-        String emailBody = createEmailBody();
-
-        String messageAttachmentString = String.join("\n", messages);
-
-        MimeMessage message = createMessage(emailBody, messageAttachmentString);
-
-        emailSender.send(message);
     }
 
     private MimeMessage createMessage(String emailBody, String messageAttachmentString) throws MessagingException {
@@ -80,11 +100,5 @@ public class DeadLetterNotifier {
         mustache.execute(writer, emailMustacheProperties).flush();
 
         return writer.toString();
-    }
-
-    private void setInitialTime() {
-        if (initialTime == null) {
-            initialTime = LocalTime.now();
-        }
     }
 }

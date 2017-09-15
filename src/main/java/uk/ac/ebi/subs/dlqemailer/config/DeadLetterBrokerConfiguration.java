@@ -3,6 +3,7 @@ package uk.ac.ebi.subs.dlqemailer.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -18,6 +19,11 @@ public class DeadLetterBrokerConfiguration {
 
     public DeadLetterBrokerConfiguration(DLQEmailerProperties dlqEmailerProperties) {
         this.dlqEmailerProperties = dlqEmailerProperties;
+    }
+
+    @Bean
+    public Jackson2JsonMessageConverter messageConverter() {
+        return new Jackson2JsonMessageConverter();
     }
 
     @Bean
