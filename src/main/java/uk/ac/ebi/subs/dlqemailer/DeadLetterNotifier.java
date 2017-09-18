@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 @Component
 public class DeadLetterNotifier {
 
+    private static final int SCHEDULED_NOTIFICATION_PERIOD = 30 * 60 * 1000; // scheduled for every 30 minutes
+
     private Logger logger = LoggerFactory.getLogger(DeadLetterNotifier.class);
 
     private DLQEmailerProperties dlqEmailerProperties;
@@ -43,7 +45,7 @@ public class DeadLetterNotifier {
         messages.putIfAbsent(message.getMessageProperties().getReceivedRoutingKey(), new String(message.getBody()));
     }
 
-    @Scheduled(fixedRate = 30 * 60 * 1000) // scheduled for every 30 minutes
+    @Scheduled(fixedRate = SCHEDULED_NOTIFICATION_PERIOD)
     public int sendNotification() throws IOException, MessagingException {
         logger.info("send notification triggered.");
         final int messagesSize;
