@@ -1,9 +1,9 @@
-# subs-dlq-emailer
-[![Build Status](https://travis-ci.org/EMBL-EBI-SUBS/subs-dlq-emailer.svg?branch=master)](https://travis-ci.org/EMBL-EBI-SUBS/subs-dlq-emailer)
+# subs-dead-letter-notifier
+[![Build Status](https://travis-ci.org/EMBL-EBI-SUBS/subs-dead-letter-notifier.svg?branch=master)](https://travis-ci.org/EMBL-EBI-SUBS/subs-dead-letter-notifier)
 
 The purpose of this application is sending a notification, in our case an email, if one of our services could not process a message that it has received.
 
-####The workflow of the application
+## The workflow of the application
 
 When a message is not processable by one of our services, then it gets sent to a so called Dead Letter Exchange in RabbitMQ.
 Currently there are 2 queues has been set up and they bound to the Dead Letter Exchange with a routing key of '#', that means both of them will gets all of the messages sent to this Dead Letter Exchange.
@@ -15,7 +15,7 @@ In the map it would store only one message by a routing key, because that is eno
 The application would send an email after a configurable amount of time if any event has occurred (any message has arrived).
 This email would contains the number of problems happened in that period of time and an attachment containing the routing key and the body of the messages.  
 
-####Configuration
+## Configuration
 
 The application can be configure via the `application.yml` file under the `src/main/resources` folder.
 
