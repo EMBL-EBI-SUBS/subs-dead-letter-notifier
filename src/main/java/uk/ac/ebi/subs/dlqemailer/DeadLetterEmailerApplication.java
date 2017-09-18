@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.system.ApplicationPidFileWriter;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -20,6 +21,10 @@ public class DeadLetterEmailerApplication {
 
     public static void main(String[] args) {
         logger.info("Dead Letter Emailer application has started");
-        SpringApplication.run(DeadLetterEmailerApplication.class, args);
+
+        SpringApplication springApplication = new SpringApplication( DeadLetterEmailerApplication.class);
+        ApplicationPidFileWriter applicationPidFileWriter = new ApplicationPidFileWriter();
+        springApplication.addListeners( applicationPidFileWriter );
+        springApplication.run(args);
     }
 }
