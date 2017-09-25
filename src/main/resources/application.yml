@@ -16,6 +16,7 @@ dlqEmailer:
     from: from@example.com
     to: to@example.com
     replyTo: reply-to@example.com
+    notificationScheduling: 60000
 
 logging:
   level: debug
