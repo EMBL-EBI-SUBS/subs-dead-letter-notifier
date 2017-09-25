@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @EnableConfigurationProperties
-@ConfigurationProperties("dlqEmailer")
+@ConfigurationProperties(prefix = "dlqEmailer")
 @ToString
 @Getter
 @Setter
@@ -38,5 +38,6 @@ public class DLQEmailerProperties {
         private String from;
         private String to;
         private String replyTo;
+        private long notificationScheduling;
     }
 }

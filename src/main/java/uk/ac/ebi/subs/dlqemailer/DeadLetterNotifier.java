@@ -45,7 +45,7 @@ public class DeadLetterNotifier {
         messages.putIfAbsent(message.getMessageProperties().getReceivedRoutingKey(), new String(message.getBody()));
     }
 
-    @Scheduled(fixedRate = SCHEDULED_NOTIFICATION_PERIOD)
+    @Scheduled(fixedRateString = "${dlqEmailer.email.notificationScheduling}", initialDelay = SCHEDULED_NOTIFICATION_PERIOD)
     public int sendNotification() throws IOException, MessagingException {
         logger.info("send notification triggered.");
         final int messagesSize;
