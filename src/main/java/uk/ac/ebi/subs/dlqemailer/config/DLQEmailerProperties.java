@@ -25,7 +25,6 @@ public class DLQEmailerProperties {
     @Getter
     @Setter
     public static class RabbitMQProp {
-        private String baseURL;
         private String deadLetterExchangeName;
         private String deadLetterEmailerQueueName;
         private String deadLetterRoutingKey;

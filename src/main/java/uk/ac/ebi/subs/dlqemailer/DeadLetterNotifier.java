@@ -37,10 +37,13 @@ public class DeadLetterNotifier {
     }
 
     private Map<String, String> messages = new HashMap<>();
+    private Map<String, Long> messageCountByRoutingKey = new HashMap<>();
 
     @RabbitListener(queues = "usi-dead-letter-emailer")
     public void consumeDeadLetterEmailerQueue(Message message) {
-        messages.putIfAbsent(message.getMessageProperties().getReceivedRoutingKey(), new String(message.getBody()));
+        String routingKey = message.getMessageProperties().getReceivedRoutingKey();
+        messages.putIfAbsent(routingKey, new String(message.getBody()));
+        messageCountByRoutingKey.merge(routingKey, (long) 1, (a, b) -> a + b);
     }
 
     @Scheduled(fixedRateString = "${dlqEmailer.email.notificationScheduling}")
@@ -53,7 +56,7 @@ public class DeadLetterNotifier {
             if (messagesSize > 0) {
                 logger.info("Sending an email");
 
-                String emailBody = createEmailBody(messagesSize);
+                String emailBody = createEmailBody();
 
                 String messageAttachmentString = messages.entrySet()
                         .stream()
@@ -65,6 +68,7 @@ public class DeadLetterNotifier {
                 emailSender.send(message);
 
                 messages.clear();
+                messageCountByRoutingKey.clear();
             }
         }
 
@@ -87,12 +91,14 @@ public class DeadLetterNotifier {
         return message;
     }
 
-    private String createEmailBody(int messageCount) throws IOException {
+    private String createEmailBody() throws IOException {
         MustacheFactory mustacheFactory = new DefaultMustacheFactory();
         Mustache mustache = mustacheFactory.compile("dead_letter_notifier_email_template.mustache");
 
         EmailMustacheProperties emailMustacheProperties = new EmailMustacheProperties();
-        emailMustacheProperties.setNumberOfMessages(String.valueOf(messageCount));
+        emailMustacheProperties.setNumberOfMessages(
+                String.valueOf(messageCountByRoutingKey.values().stream().mapToInt(Number::intValue).sum()));
+        emailMustacheProperties.setCountByRoutingKey(messageCountByRoutingKey.entrySet());
 
         StringWriter writer = new StringWriter();
         mustache.execute(writer, emailMustacheProperties).flush();

@@ -1,9 +1,17 @@
 Dear Subs Team,
 
 In the last period the dead letter exchange received {{numberOfMessages}} messages(s).
-You can find the relevant messages in the attachment.
+
+The message counts by routing key is the following:
+
+{{#countByRoutingKey}}
+{{key}}: {{value}}
+{{/countByRoutingKey}}
+
+You can find the relevant messages in the attachment, but only the first message by routing key.
 
 Happy fixing! :-)
 
 Dead Letter Notifier
+
 
