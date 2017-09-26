@@ -77,7 +77,7 @@ public class DeadLetterNotifier {
                     .map(message -> {
                         String routingKey = message.getKey();
                         DeadLetterData deadLetterData = message.getValue();
-                        return "routing key: " + routingKey + ", message: " + deadLetterData.getMessage() + "\n";
+                        return String.format("routing key: %s, message: %s \n", routingKey, deadLetterData.getMessage());
                     })
                     .collect(Collectors.joining());
 
