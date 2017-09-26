@@ -12,6 +12,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.subs.dlqemailer.config.DLQEmailerProperties;
+import uk.ac.ebi.subs.dlqemailer.config.DeadLetterData;
 import uk.ac.ebi.subs.dlqemailer.config.EmailMustacheProperties;
 
 import javax.mail.MessagingException;
@@ -19,8 +20,7 @@ import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
@@ -36,14 +36,21 @@ public class DeadLetterNotifier {
         this.emailSender = emailSender;
     }
 
-    private Map<String, String> messages = new HashMap<>();
-    private Map<String, Long> messageCountByRoutingKey = new HashMap<>();
+    private Map<String, DeadLetterData> deadLetters = new HashMap<>();
 
     @RabbitListener(queues = "usi-dead-letter-emailer")
     public void consumeDeadLetterEmailerQueue(Message message) {
         String routingKey = message.getMessageProperties().getReceivedRoutingKey();
-        messages.putIfAbsent(routingKey, new String(message.getBody()));
-        messageCountByRoutingKey.merge(routingKey, (long) 1, (a, b) -> a + b);
+
+        synchronized (deadLetters) {
+            if (deadLetters.get(routingKey) == null) {
+                deadLetters.put(routingKey, new DeadLetterData(new String(message.getBody()), 1));
+            } else {
+                DeadLetterData data = deadLetters.get(routingKey);
+                data.incrementCount();
+                deadLetters.replace(routingKey, data);
+            }
+        }
     }
 
     @Scheduled(fixedRateString = "${dlqEmailer.email.notificationScheduling}")
@@ -51,25 +58,32 @@ public class DeadLetterNotifier {
         logger.info("send notification triggered.");
         final int messagesSize;
 
-        synchronized (messages) {
-            messagesSize = messages.size();
-            if (messagesSize > 0) {
-                logger.info("Sending an email");
+        Map<String, DeadLetterData> emptyDeadLetters = new HashMap<>();
+        Map<String, DeadLetterData> deadLettersToSend;
 
-                String emailBody = createEmailBody();
+        synchronized (deadLetters) {
+            deadLettersToSend = this.deadLetters;
+            this.deadLetters = emptyDeadLetters;
+        }
 
-                String messageAttachmentString = messages.entrySet()
-                        .stream()
-                        .map(message -> "routing key: " + message.getKey().toString() + ", message: " + message.getValue().toString() + "\n")
-                        .collect(Collectors.joining());
+        messagesSize = deadLettersToSend.size();
+        if (messagesSize > 0) {
+            logger.info("Sending an email");
 
-                MimeMessage message = createMessage(emailBody, messageAttachmentString);
+            String emailBody = createEmailBody(deadLettersToSend);
 
-                emailSender.send(message);
+            String messageAttachmentString = deadLettersToSend.entrySet()
+                    .stream()
+                    .map(message -> {
+                        String routingKey = message.getKey();
+                        DeadLetterData deadLetterData = message.getValue();
+                        return "routing key: " + routingKey + ", message: " + deadLetterData.getMessage() + "\n";
+                    })
+                    .collect(Collectors.joining());
 
-                messages.clear();
-                messageCountByRoutingKey.clear();
-            }
+            MimeMessage message = createMessage(emailBody, messageAttachmentString);
+
+            emailSender.send(message);
         }
 
         return messagesSize;
@@ -91,14 +105,20 @@ public class DeadLetterNotifier {
         return message;
     }
 
-    private String createEmailBody() throws IOException {
+    private String createEmailBody(Map<String, DeadLetterData> deadLettersToSend) throws IOException {
         MustacheFactory mustacheFactory = new DefaultMustacheFactory();
         Mustache mustache = mustacheFactory.compile("dead_letter_notifier_email_template.mustache");
 
         EmailMustacheProperties emailMustacheProperties = new EmailMustacheProperties();
         emailMustacheProperties.setNumberOfMessages(
-                String.valueOf(messageCountByRoutingKey.values().stream().mapToInt(Number::intValue).sum()));
-        emailMustacheProperties.setCountByRoutingKey(messageCountByRoutingKey.entrySet());
+                String.valueOf(deadLettersToSend.values().stream().mapToLong( DeadLetterData::getCount).sum()));
+
+        Set<Map.Entry<String,Long>> countByRoutingKey =
+                deadLettersToSend.entrySet().stream()
+                .map( entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), entry.getValue().getCount()))
+                .collect(Collectors.toSet());
+
+        emailMustacheProperties.setCountByRoutingKey(countByRoutingKey);
 
         StringWriter writer = new StringWriter();
         mustache.execute(writer, emailMustacheProperties).flush();

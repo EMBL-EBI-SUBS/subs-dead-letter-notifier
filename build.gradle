@@ -41,7 +41,7 @@ dependencies {
 
     optional "org.springframework.boot:spring-boot-configuration-processor"
 
-    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.16.12'
+    compileOnly group: 'org.projectlombok', name: 'lombok'
 
     testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test'
 }
