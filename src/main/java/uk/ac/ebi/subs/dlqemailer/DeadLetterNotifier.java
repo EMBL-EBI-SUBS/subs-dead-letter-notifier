@@ -55,7 +55,7 @@ public class DeadLetterNotifier {
 
     @Scheduled(fixedRateString = "${dlqEmailer.email.notificationScheduling}")
     public int sendNotification() throws IOException, MessagingException {
-        logger.info("send notification triggered.");
+        logger.debug("send notification triggered.");
         final int messagesSize;
 
         Map<String, DeadLetterData> emptyDeadLetters = new HashMap<>();
@@ -69,6 +69,7 @@ public class DeadLetterNotifier {
         messagesSize = deadLettersToSend.size();
         if (messagesSize > 0) {
             logger.info("Sending an email");
+            logger.debug("Dead Letters to send: {}", deadLettersToSend.toString());
 
             String emailBody = createEmailBody(deadLettersToSend);
 
