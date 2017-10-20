@@ -58,6 +58,8 @@ springBoot {
     executable = true
 }
 
+ext.gradle_env = hasProperty('env') ? env : 'dev'
+
 ssh.settings {
     user = 'sub_adm'
 }
@@ -104,7 +106,7 @@ task deployJar(type: SshTask, dependsOn: 'assemble') {
         File jarDeployDir = new File(deployHome,"jar")
 
         ssh.run {
-            session(remotes.staging) {
+            session(remotes.role(gradle_env)) {
                 println "Creating $project.name directory in /data"
                 execute "/data/create_dirs.sh $project.name", ignoreError: false
                 println "Uploading jar $jar.archivePath.name to $jarDeployDir area on $remote"
