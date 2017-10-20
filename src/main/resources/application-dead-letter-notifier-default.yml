@@ -1,0 +1,20 @@
+spring:
+  main:
+    web-environment: false
+  mail:
+    host: mx1.ebi.ac.uk
+    port: 587
+  rabbitmq:
+    host: mac-subs-001
+
+
+dlqEmailer:
+  rabbitMQProp:
+    deadLetterExchangeName: usi-1:dead-letter-exchange
+    deadLetterEmailerQueueName: usi-dead-letter-emailer
+    deadLetterRoutingKey: "#"
+  email:
+    from: from@example.com
+    to: karoly@ebi.ac.uk
+    replyTo: reply-to@example.com
+    notificationScheduling: 30000

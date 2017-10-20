@@ -1,21 +1,3 @@
 spring:
-  main:
-    web-environment: false
-  mail:
-    host: company.smtp.address
-    port: 1234
-
-
-dlqEmailer:
-  rabbitMQProp:
-    deadLetterExchangeName: usi-1:dead-letter-exchange
-    deadLetterEmailerQueueName: usi-dead-letter-emailer
-    deadLetterRoutingKey: "#"
-  email:
-    from: from@example.com
-    to: to@example.com
-    replyTo: reply-to@example.com
-    notificationScheduling: 60000
-
-logging:
-  level: debug
+  config:
+    name: application-dead-letter-notifier-default
