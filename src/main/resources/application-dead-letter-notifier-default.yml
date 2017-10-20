@@ -2,11 +2,10 @@ spring:
   main:
     web-environment: false
   mail:
-    host: mx1.ebi.ac.uk
-    port: 587
+    host: company.smtp.address
+    port: 1234
   rabbitmq:
-    host: mac-subs-001
-
+      host: mac-subs-009
 
 dlqEmailer:
   rabbitMQProp:
@@ -15,6 +14,6 @@ dlqEmailer:
     deadLetterRoutingKey: "#"
   email:
     from: from@example.com
-    to: karoly@ebi.ac.uk
+    to: to@example.com
     replyTo: reply-to@example.com
     notificationScheduling: 30000
