@@ -5,7 +5,6 @@ spring:
     host: company.smtp.address
     port: 1234
 
-
 dlqEmailer:
   rabbitMQProp:
     deadLetterExchangeName: usi-1:dead-letter-exchange
@@ -15,7 +14,4 @@ dlqEmailer:
     from: from@example.com
     to: to@example.com
     replyTo: reply-to@example.com
-    notificationScheduling: 60000
-
-logging:
-  level: debug
+    notificationScheduling: 30000

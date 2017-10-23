@@ -1,15 +1,18 @@
 group 'uk.ac.ebi.subs'
-version '0.3.1-SNAPSHOT'
+version '0.3.2-SNAPSHOT'
 
 apply plugin: 'java'
 apply plugin: 'org.springframework.boot'
+apply plugin: 'propdeps'
+apply plugin: 'propdeps-maven'
+apply plugin: 'propdeps-idea'
+apply plugin: 'propdeps-eclipse'
+apply plugin: 'org.hidetake.ssh'
 
 sourceCompatibility = 1.8
 
 repositories {
-    mavenLocal()
     mavenCentral()
-    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
 }
 
 buildscript {
@@ -25,19 +28,11 @@ buildscript {
     }
 }
 
-configure(allprojects) {
-    apply plugin: 'propdeps'
-    apply plugin: 'propdeps-maven'
-    apply plugin: 'propdeps-idea'
-    apply plugin: 'propdeps-eclipse'
-}
-
 dependencies {
     compile group: 'org.springframework.boot', name: 'spring-boot-starter'
     compile group: 'org.springframework.boot', name: 'spring-boot-starter-amqp'
     compile 'com.github.spullara.mustache.java:compiler:0.9.5'
     compile 'org.springframework.boot:spring-boot-starter-mail'
-
 
     optional "org.springframework.boot:spring-boot-configuration-processor"
 
@@ -47,8 +42,6 @@ dependencies {
 }
 
 compileJava.dependsOn(processResources)
-
-apply plugin: 'org.hidetake.ssh'
 
 bootRepackage {
     mainClass = "uk.ac.ebi.subs.dlqemailer.DeadLetterEmailerApplication"
