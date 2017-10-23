@@ -4,8 +4,6 @@ spring:
   mail:
     host: company.smtp.address
     port: 1234
-  rabbitmq:
-      host: mac-subs-009
 
 dlqEmailer:
   rabbitMQProp:
