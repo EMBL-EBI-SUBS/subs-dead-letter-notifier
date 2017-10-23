@@ -1,38 +1,28 @@
 package uk.ac.ebi.subs.dlqemailer.config;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * Reading property values from application.yml file.
  */
-@Component
-@EnableConfigurationProperties
+@Configuration
 @ConfigurationProperties(prefix = "dlqEmailer")
-@ToString
-@Getter
-@Setter
+@Data
 public class DLQEmailerProperties {
 
     private RabbitMQProp rabbitMQProp;
     private Email email;
 
-    @ToString
-    @Getter
-    @Setter
+    @Data
     public static class RabbitMQProp {
         private String deadLetterExchangeName;
         private String deadLetterEmailerQueueName;
         private String deadLetterRoutingKey;
     }
 
-    @ToString
-    @Getter
-    @Setter
+    @Data
     public static class Email {
         private String from;
         private String to;
