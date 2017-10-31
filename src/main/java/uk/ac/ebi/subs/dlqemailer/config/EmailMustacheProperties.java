@@ -14,4 +14,8 @@ public class EmailMustacheProperties {
 
     private String numberOfMessages;
     private Set<Map.Entry<String,Long>> countByRoutingKey;
+    private String configName;
+    private String hostname;
+    private String username;
+    private Long messageRate;
 }
