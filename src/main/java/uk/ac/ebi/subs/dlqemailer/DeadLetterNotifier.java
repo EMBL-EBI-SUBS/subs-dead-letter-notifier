@@ -3,6 +3,8 @@ package uk.ac.ebi.subs.dlqemailer;
 import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -14,27 +16,26 @@ import org.springframework.stereotype.Component;
 import uk.ac.ebi.subs.dlqemailer.config.DLQEmailerProperties;
 import uk.ac.ebi.subs.dlqemailer.config.DeadLetterData;
 import uk.ac.ebi.subs.dlqemailer.config.EmailMustacheProperties;
+import uk.ac.ebi.subs.dlqemailer.config.EnvironmentProperties;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class DeadLetterNotifier {
 
     private Logger logger = LoggerFactory.getLogger(DeadLetterNotifier.class);
 
-    private DLQEmailerProperties dlqEmailerProperties;
-    private JavaMailSender emailSender;
-
-    public DeadLetterNotifier(DLQEmailerProperties dlqEmailerProperties, JavaMailSender emailSender) {
-        this.dlqEmailerProperties = dlqEmailerProperties;
-        this.emailSender = emailSender;
-    }
+    @NonNull private EnvironmentProperties environmentProperties;
+    @NonNull private DLQEmailerProperties dlqEmailerProperties;
+    @NonNull private JavaMailSender emailSender;
 
     private Map<String, DeadLetterData> deadLetters = new HashMap<>();
 
@@ -99,7 +100,7 @@ public class DeadLetterNotifier {
         messageHelper.setTo(emailProp.getTo());
         messageHelper.setReplyTo(emailProp.getReplyTo());
         messageHelper.setText(emailBody);
-        messageHelper.setSubject("Message from Dead Letter Notifier");
+        messageHelper.setSubject(MessageFormat.format("Message from Dead Letter Notifier {0}", environmentProperties.getName()));
 
         messageHelper.addAttachment("collectedMessages.txt",
                 () -> new ByteArrayInputStream(messageAttachmentString.getBytes()));
@@ -120,6 +121,11 @@ public class DeadLetterNotifier {
                 .collect(Collectors.toSet());
 
         emailMustacheProperties.setCountByRoutingKey(countByRoutingKey);
+
+        emailMustacheProperties.setConfigName(environmentProperties.getName());
+        emailMustacheProperties.setHostname(java.net.InetAddress.getLocalHost().getHostName());
+        emailMustacheProperties.setUsername(System.getProperty("user.name"));
+        emailMustacheProperties.setMessageRate(dlqEmailerProperties.getEmail().getNotificationScheduling());
 
         StringWriter writer = new StringWriter();
         mustache.execute(writer, emailMustacheProperties).flush();

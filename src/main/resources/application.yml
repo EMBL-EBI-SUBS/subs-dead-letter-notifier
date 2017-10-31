@@ -15,3 +15,7 @@ dlqEmailer:
     to: to@example.com
     replyTo: reply-to@example.com
     notificationScheduling: 30000
+
+usi:
+  environment:
+    name: notset
