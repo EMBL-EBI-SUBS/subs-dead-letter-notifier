@@ -81,15 +81,15 @@ task printJarFullPath {
 remotes {
     submission_dev {
         role('dev')
-        host = 'mac-subs-009'
+        host = project.hasProperty(project.name + "DevDeployTarget") ? getProperty(project.name + "DevDeployTarget") : 'localhost'
     }
     submission_test {
         role('test')
-        host = 'mac-subs-009'
+        host = project.hasProperty(project.name + "TestDeployTarget") ? getProperty(project.name + "TestDeployTarget") : 'localhost'
     }
     submission_prod {
         role('prod')
-        host = 'mac-subs-013'
+        host = project.hasProperty(project.name + "ProdDeployTarget") ? getProperty(project.name + "ProdDeployTarget") : 'localhost'
     }
 }
 
@@ -106,13 +106,14 @@ task deployJar(type: SshTask, dependsOn: 'assemble') {
 private Object sshRun(File jarDeployDir) {
     ssh.run {
         session(remotes.role(gradle_env)) {
-            execute "/homes/sub_adm/create_dirs.sh $gradle_env $project.name", ignoreError: false
-            println "Uploading jar $jar.archivePath.name to $jarDeployDir area on $remote"
-            put(jar.archivePath.absolutePath, jarDeployDir.absolutePath)
-            println "creating symbolic link to $jar.archiveName"
-            def result = execute "ln -s -f $jarDeployDir/$jar.archiveName $jarDeployDir/$jar.baseName" + ".jar", ignoreError: true
+            def jarFileName = project.name + "-"  + project.version + "." + System.currentTimeMillis() + ".jar"
+            File jarDeployFile = new File("/data/$env/$project.name/jar",jarFileName)
+            println "Uploading jar $jar.archivePath.name to $jarDeployFile.absolutePath area on $remote"
+            put(jar.archivePath.absolutePath, jarDeployFile.absolutePath)
+            println "creating symbolic link to $jar.archiveName" + "_$env"
+            def result = execute "ln -s -f $jarDeployFile.absolutePath $jarDeployDir/$jar.baseName" + "_${env}.jar", ignoreError: true
             println result
-            println "updating permissions of $jarDeployDir/$jar.archiveName"
+            println "updating permissions of $jarDeployDir/$jar.archiveName" + "_$env"
             execute "chmod u+x $jarDeployDir/*", ignoreError: false
         }
     }
