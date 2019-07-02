@@ -1,5 +1,6 @@
 package uk.ac.ebi.subs.dlqemailer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
@@ -9,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,8 +25,15 @@ import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.UnknownHostException;
 import java.text.MessageFormat;
-import java.util.*;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.AbstractMap;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -37,9 +46,12 @@ public class DeadLetterNotifier {
     @NonNull private DLQEmailerProperties dlqEmailerProperties;
     @NonNull private JavaMailSender emailSender;
 
-    private Map<String, DeadLetterData> deadLetters = new HashMap<>();
+    private final Map<String, DeadLetterData> deadLetters = new HashMap<>();
 
-    @RabbitListener(queues = "usi-dead-letter-emailer")
+    @Value("${dlqEmailer.email.notificationScheduling}")
+    private int notificationDuration;
+
+    @RabbitListener(queues = "${dlqEmailer.rabbitMQProp.deadLetterEmailerQueueName}")
     public void consumeDeadLetterEmailerQueue(Message message) {
         String routingKey = message.getMessageProperties().getReceivedRoutingKey();
 
@@ -59,12 +71,12 @@ public class DeadLetterNotifier {
         logger.debug("send notification triggered.");
         final int messagesSize;
 
-        Map<String, DeadLetterData> emptyDeadLetters = new HashMap<>();
         Map<String, DeadLetterData> deadLettersToSend;
+        ObjectMapper mapper = new ObjectMapper();
 
         synchronized (deadLetters) {
-            deadLettersToSend = this.deadLetters;
-            this.deadLetters = emptyDeadLetters;
+            deadLettersToSend = new HashMap<>(this.deadLetters);
+            this.deadLetters.clear();
         }
 
         messagesSize = deadLettersToSend.size();
@@ -74,14 +86,15 @@ public class DeadLetterNotifier {
 
             String emailBody = createEmailBody(deadLettersToSend);
 
-            String messageAttachmentString = deadLettersToSend.entrySet()
-                    .stream()
-                    .map(message -> {
-                        String routingKey = message.getKey();
-                        DeadLetterData deadLetterData = message.getValue();
-                        return String.format("routing key: %s, message: %s \n", routingKey, deadLetterData.getMessage());
-                    })
-                    .collect(Collectors.joining());
+            String messageAttachmentString = "";
+
+            for (Map.Entry<String, DeadLetterData> message: deadLettersToSend.entrySet()) {
+                String routingKey = message.getKey();
+                Object json = mapper.readValue(message.getValue().getMessage(), Object.class);
+                String indentedJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
+
+                messageAttachmentString += String.format("routing key: %s,\nmessage:\n%s\n", routingKey, indentedJson);
+            }
 
             MimeMessage message = createMessage(emailBody, messageAttachmentString);
 
@@ -111,6 +124,13 @@ public class DeadLetterNotifier {
         MustacheFactory mustacheFactory = new DefaultMustacheFactory();
         Mustache mustache = mustacheFactory.compile("dead_letter_notifier_email_template.mustache");
 
+        StringWriter writer = new StringWriter();
+        mustache.execute(writer, getEmailMustacheProperties(deadLettersToSend)).flush();
+
+        return writer.toString();
+    }
+
+    private EmailMustacheProperties getEmailMustacheProperties(Map<String, DeadLetterData> deadLettersToSend) throws UnknownHostException {
         EmailMustacheProperties emailMustacheProperties = new EmailMustacheProperties();
         emailMustacheProperties.setNumberOfMessages(
                 String.valueOf(deadLettersToSend.values().stream().mapToLong( DeadLetterData::getCount).sum()));
@@ -127,9 +147,13 @@ public class DeadLetterNotifier {
         emailMustacheProperties.setUsername(System.getProperty("user.name"));
         emailMustacheProperties.setMessageRate(dlqEmailerProperties.getEmail().getNotificationScheduling());
 
-        StringWriter writer = new StringWriter();
-        mustache.execute(writer, emailMustacheProperties).flush();
+        Instant messageSendingEnd = Instant.now();
+        Instant messageSendingStart = messageSendingEnd.minusMillis(notificationDuration);
+        DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                .withZone(ZoneId.systemDefault());
 
-        return writer.toString();
+        emailMustacheProperties.setDateTime(
+                DATE_TIME_FORMATTER.format(messageSendingStart) + " - " + DATE_TIME_FORMATTER.format(messageSendingEnd));
+        return emailMustacheProperties;
     }
 }
