@@ -41,7 +41,7 @@ dependencies {
     testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test'
 }
 
-mainClass = "uk.ac.ebi.subs.dlqemailer.DeadLetterEmailerApplication"
+mainClassName = "uk.ac.ebi.subs.dlqemailer.DeadLetterEmailerApplication"
 
 task sourceJar(type: Jar) { from sourceSets.main.allJava }
 
