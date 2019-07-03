@@ -79,15 +79,15 @@ task printJarFullPath {
 }
 
 remotes {
-    submission_dev {
+    subs_dead_letter_notifier_dev {
         role('dev')
         host = project.hasProperty(project.name + "DevDeployTarget") ? getProperty(project.name + "DevDeployTarget") : 'localhost'
     }
-    submission_test {
+    subs_dead_letter_notifier_test {
         role('test')
         host = project.hasProperty(project.name + "TestDeployTarget") ? getProperty(project.name + "TestDeployTarget") : 'localhost'
     }
-    submission_prod {
+    subs_dead_letter_notifier_prod {
         role('prod')
         host = project.hasProperty(project.name + "ProdDeployTarget") ? getProperty(project.name + "ProdDeployTarget") : 'localhost'
     }
@@ -106,6 +106,7 @@ task deployJar(type: SshTask, dependsOn: 'assemble') {
 private Object sshRun(File jarDeployDir) {
     ssh.run {
         session(remotes.role(gradle_env)) {
+            execute "/homes/sub_adm/create_dirs.sh $gradle_env $project.name", ignoreError: false
             def jarFileName = project.name + "-"  + project.version + "." + System.currentTimeMillis() + ".jar"
             File jarDeployFile = new File("/data/$env/$project.name/jar",jarFileName)
             println "Uploading jar $jar.archivePath.name to $jarDeployFile.absolutePath area on $remote"
