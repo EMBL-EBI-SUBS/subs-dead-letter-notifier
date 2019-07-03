@@ -84,30 +84,25 @@ task printJarFullPath {
     }
 }
 
-println "DEBUG: project name -> $project.name"
-def devDeployHostName = hasProperty(project.name + "DevDeployTarget") ? getProperty(project.name + "DevDeployTarget") : 'localhost'
-def testDeployHostName = hasProperty(project.name + "TestDeployTarget") ? getProperty(project.name + "TestDeployTarget") : 'localhost'
-def prodDeployHostName = hasProperty(project.name + "ProdDeployTarget") ? getProperty(project.name + "ProdDeployTarget") : 'localhost'
-
 remotes {
     subs_dead_letter_notifier_dev {
         role('dev')
-        host = devDeployHostName
+        println "DEBUG: project name -> $project.name"
+        host = project.hasProperty(project.name + "DevDeployTarget") ? getProperty(project.name + "DevDeployTarget") : 'localhost'
     }
     subs_dead_letter_notifier_test {
         role('test')
-        host = testDeployHostName
+        host = project.hasProperty(project.name + "TestDeployTarget") ? getProperty(project.name + "TestDeployTarget") : 'localhost'
     }
     subs_dead_letter_notifier_prod {
         role('prod')
-        host = prodDeployHostName
+        host = project.hasProperty(project.name + "ProdDeployTarget") ? getProperty(project.name + "ProdDeployTarget") : 'localhost'
     }
 }
 
 task deployJar(type: SshTask, dependsOn: 'assemble') {
     doLast {
-        def uploadJarFileName = project.name + "-"  + project.version + "." + System.currentTimeMillis() + ".jar"
-        File jarDeployDir = new File("/data/$gradle_env/$project.name/jar", uploadJarFileName)
+        File jarDeployDir = new File("/data/$gradle_env/$project.name/jar")
         sshRun(jarDeployDir)
     }
     ssh.settings {
@@ -116,11 +111,11 @@ task deployJar(type: SshTask, dependsOn: 'assemble') {
 }
 
 private Object sshRun(File jarDeployDir) {
-    def uploadJarFileName = name + "-"  + version + "." + System.currentTimeMillis() + ".jar"
-    File jarDeployDir = jarDeployFile.getParentFile()
     ssh.run {
         session(remotes.role(gradle_env)) {
             execute "/homes/sub_adm/create_dirs.sh $gradle_env $project.name", ignoreError: false
+            def jarFileName = project.name + "-"  + project.version + "." + System.currentTimeMillis() + ".jar"
+            File jarDeployFile = new File("/data/$env/$project.name/jar",jarFileName)
             println "Uploading jar $jar.archivePath.name to $jarDeployFile.absolutePath area on $remote"
             put(jar.archivePath.absolutePath, jarDeployFile.absolutePath)
             println "creating symbolic link to $jar.archiveName" + "_$env"
