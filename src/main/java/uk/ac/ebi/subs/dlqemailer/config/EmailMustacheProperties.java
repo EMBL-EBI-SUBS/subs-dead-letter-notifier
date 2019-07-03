@@ -18,4 +18,5 @@ public class EmailMustacheProperties {
     private String hostname;
     private String username;
     private Long messageRate;
+    private String dateTime;
 }

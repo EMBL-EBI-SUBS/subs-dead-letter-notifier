@@ -1,5 +1,7 @@
 package uk.ac.ebi.subs.dlqemailer;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.amqp.core.Message;
@@ -40,7 +42,7 @@ public class DeadLetterNotifierTest {
 
     @Test
     public void whenReceiving10MessagesWith3DifferentRoutingKeys_ThenMessageCountShouldBe3()
-            throws IOException, MessagingException {
+            throws IOException, MessagingException, JSONException {
         doNothing().when(emailSender).send(any(MimeMessage.class));
 
         generateMessage(3, generateMessageProperty(1)).forEach(
@@ -62,10 +64,12 @@ public class DeadLetterNotifierTest {
         return mp;
     }
 
-    private List<Message> generateMessage(int numberOfMessage, MessageProperties messageProperties) {
+    private List<Message> generateMessage(int numberOfMessage, MessageProperties messageProperties) throws JSONException {
         List<Message> messages = new ArrayList<>();
         for (int i = 0; i < numberOfMessage; i++) {
-            Message message = new Message(("Message" + i).getBytes(), messageProperties);
+            JSONObject messageBody = new JSONObject();
+            messageBody.put("testkey", "testvalue_" + i);
+            Message message = new Message(messageBody.toString().getBytes(), messageProperties);
             messages.add(message);
         }
 
