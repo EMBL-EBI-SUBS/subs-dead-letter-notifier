@@ -81,6 +81,7 @@ task printJarFullPath {
 remotes {
     subs_dead_letter_notifier_dev {
         role('dev')
+        println "DEBUG: project name -> $project.name"
         host = project.hasProperty(project.name + "DevDeployTarget") ? getProperty(project.name + "DevDeployTarget") : 'localhost'
     }
     subs_dead_letter_notifier_test {
