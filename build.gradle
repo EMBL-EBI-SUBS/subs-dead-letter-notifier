@@ -2,11 +2,11 @@ group 'uk.ac.ebi.subs'
 version '0.4.0-SNAPSHOT'
 
 apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'eclipse'
 apply plugin: 'org.springframework.boot'
-apply plugin: 'propdeps'
-apply plugin: 'propdeps-maven'
-apply plugin: 'propdeps-idea'
-apply plugin: 'propdeps-eclipse'
+apply plugin: 'maven'
+apply plugin: 'application'
 apply plugin: 'org.hidetake.ssh'
 
 sourceCompatibility = 1.8
