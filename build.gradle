@@ -23,7 +23,6 @@ buildscript {
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:1.5.10.RELEASE")
-        classpath 'io.spring.gradle:propdeps-plugin:0.0.9.RELEASE'
         classpath 'org.hidetake:gradle-ssh-plugin:1.1.3'
     }
 }
@@ -41,10 +40,16 @@ dependencies {
     testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test'
 }
 
-compileJava.dependsOn(processResources)
+mainClass = "uk.ac.ebi.subs.dlqemailer.DeadLetterEmailerApplication"
 
-bootRepackage {
-    mainClass = "uk.ac.ebi.subs.dlqemailer.DeadLetterEmailerApplication"
+task sourceJar(type: Jar) { from sourceSets.main.allJava }
+
+artifacts {
+    archives jar
+    archives sourceJar {
+        classifier "sources"
+        destinationDir = new File("build/libs/sources")
+    }
 }
 
 springBoot {
