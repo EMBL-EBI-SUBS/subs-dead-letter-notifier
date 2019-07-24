@@ -1,6 +1,4 @@
 spring:
-  main:
-    web-environment: false
   mail:
     host: company.smtp.address
     port: 1234
